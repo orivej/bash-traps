@@ -13,16 +13,25 @@ function pop_atexit {
     _atexit=("${_atexit[@]:$((1+$nargs))}")
 }
 
-function atexit {
-    push_atexit "$@"
-    local cmd="$(trap -p EXIT)"
-    cmd="$(sed "s/-- /-- 'pop_atexit;'/" <<< "$cmd")"
+function prepend_trap {
+    local new_cmd="$1" event="$2"
+    local cmd="$(trap -p $event)"
+    if [ "$cmd" ]; then
+        cmd="${cmd:0:8}$(printf %q "${new_cmd}")';'${cmd:8}"
+    else
+        cmd="trap -- $(printf %q "${new_cmd}") $event"
+    fi
     eval "$cmd"
 }
 
+function atexit {
+    push_atexit "$@"
+    prepend_trap pop_atexit EXIT
+}
+
 (
-    set -e
     trap 'echo normal trap' EXIT
+    prepend_trap 'echo second trap' EXIT
 
     echo touch "f  1"
     atexit echo rm "f  1"
