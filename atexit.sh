@@ -25,11 +25,11 @@ function __finally {
     set -e
     trap 'echo normal trap' EXIT
 
-    echo mount 1
-    defer echo umount 1
+    echo touch "f  1"
+    defer echo rm "f  1"
 
-    echo mount 2
-    defer echo umount 2
+    echo touch "f  2"
+    defer echo rm "f  2"
 
     false
 )
