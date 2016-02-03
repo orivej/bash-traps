@@ -1,10 +1,9 @@
 #!/bin/bash
-set -x
 
 function defer {
     declare -ga traps
     traps[${#traps[*]}]=`trap`
-    trapcmd="__finally; $(printf "%q " "$@")"
+    trapcmd="$(printf "%q " "$@"); __finally"
     trap "eval eval \"$(printf '"%q" ' "$trapcmd")\"" EXIT
 }
 
@@ -29,8 +28,8 @@ function __finally {
     echo mount 1
     defer echo umount 1
 
-    false
-
     echo mount 2
     defer echo umount 2
+
+    false
 )
