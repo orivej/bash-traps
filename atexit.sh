@@ -1,24 +1,23 @@
 #!/bin/bash
+set -e -o pipefail
 
-function defer {
-    declare -ga traps
-    traps[${#traps[*]}]=`trap`
-    trapcmd="$(printf "%q " "$@"); __finally"
-    trap "eval eval \"$(printf '"%q" ' "$trapcmd")\"" EXIT
+_atexit=()
+
+function push_atexit {
+    _atexit=($# "$@" "${_atexit[@]}")
 }
 
-function __finally {
-    declare -ga traps
-    local cmd
-    eval "$@"
-    cmd="${traps[${#traps[@]}-1]}"
-    unset traps[${#traps[@]}-1]
-    eval set -- "${cmd}"
-    if [ "$1/$2/$4" = "trap/--/EXIT" ]; then
-        eval "$3"
-    else
-        eval "${cmd}"
-    fi
+function pop_atexit {
+    local nargs=${_atexit[0]}
+    "${_atexit[@]:1:$nargs}"
+    _atexit=("${_atexit[@]:$((1+$nargs))}")
+}
+
+function atexit {
+    push_atexit "$@"
+    local cmd="$(trap -p EXIT)"
+    cmd="$(sed "s/-- /-- 'pop_atexit;'/" <<< "$cmd")"
+    eval "$cmd"
 }
 
 (
@@ -26,10 +25,10 @@ function __finally {
     trap 'echo normal trap' EXIT
 
     echo touch "f  1"
-    defer echo rm "f  1"
+    atexit echo rm "f  1"
 
     echo touch "f  2"
-    defer echo rm "f  2"
+    atexit echo rm "f  2"
 
     false
 )
