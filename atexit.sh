@@ -1,7 +1,7 @@
 #!/bin/bash
-set -e -o pipefail
+set -eu -o pipefail
 
-_atexit=()
+_atexit=("")
 
 function push_atexit {
     _atexit=($# "$@" "${_atexit[@]}")
@@ -30,14 +30,13 @@ function atexit {
 }
 
 (
-    trap 'echo normal trap' EXIT
-    prepend_trap 'echo second trap' EXIT
+    trap 'echo first trap' EXIT
 
     echo touch "f  1"
     atexit echo rm "f  1"
 
+    prepend_trap 'echo second trap' EXIT
+
     echo touch "f  2"
     atexit echo rm "f  2"
-
-    false
 )
